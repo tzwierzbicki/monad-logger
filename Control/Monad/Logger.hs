@@ -601,6 +601,14 @@ instance Applicative m => Applicative (LoggingT m) where
                                        (runLoggingT loggerF) loggerFn
                                        <*> (runLoggingT loggerA) loggerFn
     {-# INLINE (<*>) #-}
+    -- Without this, the default (id <$ a) <*> b is used; 'forever' (and
+    -- ReaderT's (>>), which is (*>)) then retain an (<*>) continuation and
+    -- two thunks per iteration whenever LoggingT is used through its
+    -- dictionary, i.e. in any loop GHC did not specialise.
+    loggerA *> loggerB = LoggingT $ \loggerFn ->
+                                       (runLoggingT loggerA) loggerFn
+                                       *> (runLoggingT loggerB) loggerFn
+    {-# INLINE (*>) #-}
 #endif
 
 -- | @since 0.3.40
